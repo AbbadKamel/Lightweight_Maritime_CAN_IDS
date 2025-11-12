@@ -1,0 +1,38 @@
+# Detection Configuration - Three-Tier Thresholding
+
+detection:
+  # Tier 1: Pixel-level (Reconstruction Loss)
+  tier1:
+    name: "R_Loss"
+    description: "Pixel-level reconstruction error threshold"
+    percentile: 95  # 95th percentile of training errors
+    
+  # Tier 2: Signal-level (Temporal consistency)
+  tier2:
+    name: "R_Time"
+    description: "Signal-level temporal threshold"
+    window_size: 10  # Time steps to analyze
+    percentile: 95
+    
+  # Tier 3: Window-level (Anomaly score)
+  tier3:
+    name: "R_Signal"
+    description: "Window-level anomaly score threshold"
+    percentile: 95
+    
+  # Ensemble decision
+  ensemble:
+    name: "R_Signal_ensemble"
+    method: "average"  # Average scores from all models
+    percentile: 95
+
+real_time:
+  buffer_size: 1000
+  detection_latency_target_ms: 10
+  update_interval_ms: 1
+
+output:
+  save_predictions: true
+  save_anomaly_scores: true
+  save_decisions: true
+  prediction_format: "csv"

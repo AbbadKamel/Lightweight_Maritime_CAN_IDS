@@ -1,0 +1,208 @@
+================================================================================
+📊 CANShield DATA PREPROCESSING MODULE - COMPLETE BREAKDOWN
+================================================================================
+
+INPUT: Raw CAN data (CSV with Time, ID, Signal1, Signal2, etc.)
+OUTPUT: 3D sequences ready for autoencoder training (samples, timesteps, signals, 1)
+
+================================================================================
+STEP 1: DATASET GENERATION (generate_dataset)
+================================================================================
+Purpose: Convert signal-per-ID format to signal_of_ID_X format
+
+Before (Original CSV):
+┌──────┬───────┬────┬──────────┬──────────┬──────────┐
+│ Time │ Label │ ID │ Signal1  │ Signal2  │ Signal3  │
+├──────┼───────┼────┼──────────┼──────────┼──────────┤
+│ 0.1  │ 0     │ 2  │ 123.45   │ 67.89    │ NaN      │
+│ 0.2  │ 0     │ 7  │ 234.56   │ NaN      │ NaN      │
+│ 0.3  │ 0     │ 2  │ 125.67   │ 68.12    │ NaN      │
+└──────┴───────┴────┴──────────┴──────────┴──────────┘
+
+After (Generated CSV):
+┌──────┬───────┬────┬─────────────┬─────────────┬─────────────┐
+│ Time │ Label │ ID │ Sig_1_of_ID_2│ Sig_2_of_ID_2│ Sig_1_of_ID_7│
+├──────┼───────┼────┼─────────────┼─────────────┼─────────────┤
+│ 0.1  │ 0     │ 2  │ 123.45      │ 67.89       │ NaN         │
+│ 0.2  │ 0     │ 7  │ NaN         │ NaN         │ 234.56      │
+│ 0.3  │ 0     │ 2  │ 125.67      │ 68.12       │ NaN         │
+└──────┴───────┴────┴─────────────┴─────────────┴─────────────┘
+
+Why? Each signal becomes unique across different CAN IDs
+Result: Saved as "file_name_generated.csv"
+
+================================================================================
+STEP 2: LOAD DATA (load_data)
+================================================================================
+Purpose: Load generated CSV and select features
+
+Actions:
+1. Load generated CSV (or create if doesn't exist)
+2. Extract labels: y = X['Label']
+3. Select only specified features from config (20 signals for SynCAN)
+4. Forward fill (ffill): Fill NaN with previous valid value
+5. Backward fill (bfill): Fill remaining NaN with next valid value
+6. Drop any remaining NaN
+
+Example: 100,000 rows → Select 20 features → Fill NaN → Clean data
+
+================================================================================
+STEP 3: NORMALIZATION (scale_dataset)
+================================================================================
+Purpose: Scale all signals to [0, 1] range using MinMaxScaler
+
+Input: Raw signal values (e.g., 0-255 for some, 0-8191 for others)
+Process:
+  - Load min/max values from "min_max_values_syncan.csv"
+  - Apply: X_scaled = (X - min) / (max - min)
+Output: All values in [0, 1] range
+
+Why? Neural networks train better with normalized inputs
+
+Example:
+  Signal_1: 123.45 → (123.45 - 0) / (255) = 0.484
+  Signal_2: 67.89  → (67.89 - 0) / (100) = 0.679
+
+================================================================================
+STEP 4: CREATE SEQUENCES (create_x_sequences)
+================================================================================
+Purpose: Build sliding windows (FIFO views) for temporal patterns
+
+Parameters:
+  - time_step: How many timesteps per window (e.g., 50)
+  - sampling_period: Skip rate (1=consecutive, 5=every 5th row, 10=every 10th)
+  - window_step: How much to slide window (10 = slide 10 rows each time)
+
+Example (time_step=50, sampling_period=1, window_step=10):
+
+Row 0-49   → Window 1  [50 samples]
+Row 10-59  → Window 2  [50 samples]  (slides by 10)
+Row 20-69  → Window 3  [50 samples]  (slides by 10)
+...
+
+Example (time_step=50, sampling_period=5, window_step=10):
+
+Row 0, 5, 10, 15, ... 245 → Window 1  [50 samples, every 5th]
+Row 10, 15, 20, 25, ... 255 → Window 2  [50 samples, every 5th]
+...
+
+Output Shape: (num_windows, time_step, num_signals, 1)
+Example: (9000, 50, 20, 1) → 9000 windows, 50 timesteps, 20 signals
+
+================================================================================
+STEP 5: CREATE LABELS (create_y_sequences)
+================================================================================
+Purpose: Label each window as normal (0) or attack (1)
+
+Rule: If ANY sample in window has Label=1 → Window label = 1
+      If ALL samples in window have Label=0 → Window label = 0
+
+Example:
+  Window 1: Rows 0-49 all have Label=0 → y=0 (normal)
+  Window 2: Rows 10-59, one has Label=1 → y=1 (attack)
+
+Output Shape: (num_windows,)
+Example: (9000,) → 9000 labels corresponding to 9000 windows
+
+================================================================================
+📋 FULL PIPELINE SUMMARY
+================================================================================
+
+1. generate_dataset()
+   ↓ Input: ambient.csv (100,000 rows, ID/Signal1/Signal2)
+   ↓ Output: ambient_generated.csv (100,000 rows, Sig_1_of_ID_2, Sig_2_of_ID_3, etc.)
+   
+2. load_data()
+   ↓ Input: ambient_generated.csv
+   ↓ Output: X (100,000 rows, 20 signals), y (100,000 labels)
+   ↓ Processing: ffill → bfill → dropna
+   
+3. scale_dataset()
+   ↓ Input: X (100,000 rows, 20 signals, raw values)
+   ↓ Output: X_scaled (100,000 rows, 20 signals, [0-1] range)
+   
+4. create_x_sequences()
+   ↓ Input: X_scaled (100,000 rows, 20 signals)
+   ↓ Output: X_sequences (9000 windows, 50 timesteps, 20 signals, 1)
+   ↓ Parameters: time_step=50, sampling_period=1, window_step=10
+   
+5. create_y_sequences()
+   ↓ Input: y (100,000 labels)
+   ↓ Output: y_sequences (9000 labels, one per window)
+
+6. Train autoencoder
+   ↓ Input: X_sequences (9000, 50, 20, 1)
+   ↓ Training: Learns normal patterns from windows labeled y=0
+
+================================================================================
+🔑 KEY CONCEPTS
+================================================================================
+
+Sliding Window (FIFO):
+  - Extract temporal patterns (how signals change over time)
+  - Overlapping windows capture all variations
+
+Sampling Period:
+  - 1 = Use every row (high resolution)
+  - 5 = Use every 5th row (medium resolution, faster)
+  - 10 = Use every 10th row (low resolution, fastest)
+
+Window Step:
+  - How much overlap between windows
+  - Smaller = more windows (slower training, more data)
+  - Larger = fewer windows (faster training, less overlap)
+
+Normalization:
+  - Essential for neural networks
+  - All signals on same scale [0, 1]
+  - Prevents large signals from dominating
+
+================================================================================
+📊 EXAMPLE WITH NUMBERS
+================================================================================
+
+Input File: ambient.csv
+  - 100,000 rows
+  - Signals per ID: ID_2 (3 signals), ID_7 (2 signals), ID_3 (4 signals), etc.
+  - Total unique signals: 20
+
+After preprocessing:
+  - X shape: (100,000, 20) → 100,000 timesteps, 20 signals
+  - After normalization: All values in [0, 1]
+  - After windowing (time_step=50, sampling_period=1, window_step=10):
+    * X_sequences: (9995, 50, 20, 1)
+    * 9995 windows
+    * Each window: 50 timesteps × 20 signals = 1000 values
+    * Total data points: 9995 × 1000 = ~10 million values
+
+Training:
+  - Autoencoder learns to reconstruct these 9995 windows
+  - Only trains on windows with y=0 (normal behavior)
+  - Learns: "What does normal CAN traffic look like?"
+
+================================================================================
+🎯 WHAT YOU NEED TO DO FOR YOUR DATA
+================================================================================
+
+Your data: decoded_brute_frames.csv (98,942 rows, 17 signals)
+
+1. Format check ✅
+   - Already have: Timestamp, latitude, longitude, sog, cog, etc.
+   - No need to "generate" like CANShield (already signal-based)
+
+2. Normalization ✅
+   - Need: min_max_values.csv with min/max for each of 17 signals
+   - Apply MinMaxScaler
+
+3. Create sequences ✅
+   - time_step: 50 (50 timesteps per window)
+   - sampling_period: 1 (use every row)
+   - window_step: 10 (slide by 10 rows)
+   - Output: (9800, 50, 17, 1) approximately
+
+4. Training ✅
+   - Train autoencoder on normal windows
+   - Learn reconstruction error threshold
+   - Detect anomalies when error exceeds threshold
+
+================================================================================
