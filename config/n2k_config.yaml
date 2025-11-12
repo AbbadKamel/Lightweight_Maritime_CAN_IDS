@@ -1,0 +1,40 @@
+# NMEA 2000 Maritime Data Configuration
+
+dataset:
+  name: "N2K_Maritime"
+  description: "NMEA 2000 CAN data from maritime vessels"
+  
+data_paths:
+  raw_normal: "data/raw/n2k/normal"
+  raw_attacks: "data/raw/n2k/attacks"
+  processed: "data/processed"
+  scalers: "data/scalers"
+  thresholds: "data/thresholds"
+
+preprocessing:
+  queue_size: 1000  # FIFO queue size (q)
+  sampling_periods: [1, 5, 10, 20, 50]  # Tx values
+  
+signals:
+  # Critical maritime signals to monitor
+  selected_signals:
+    - "heading"
+    - "rate_of_turn"
+    - "yaw"
+    - "pitch"
+    - "roll"
+    - "speed_water"
+    - "speed_ground"
+    - "depth"
+    - "latitude"
+    - "longitude"
+    - "cog"
+    - "sog"
+    - "wind_speed"
+    - "wind_angle"
+  
+  variance_threshold: 0.01  # Minimum variance for signal selection
+
+normalization:
+  method: "minmax"
+  feature_range: [0, 1]

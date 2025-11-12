@@ -1,0 +1,39 @@
+{
+  "created": "2025-11-12T15:31:28.576399",
+  "total_samples": 4944492,
+  "num_signals": 15,
+  "label_map": {
+    "normal": 0,
+    "flooding": 1,
+    "suppress": 2,
+    "plateau": 3,
+    "continuous": 4,
+    "playback": 5
+  },
+  "attack_counts": {
+    "normal": 3461255,
+    "flooding": 296679,
+    "suppress": 296679,
+    "plateau": 296679,
+    "continuous": 296679,
+    "playback": 296679
+  },
+  "attack_config": {
+    "normal": 0.7,
+    "flooding": 0.06,
+    "suppress": 0.06,
+    "plateau": 0.06,
+    "continuous": 0.06,
+    "playback": 0.06
+  },
+  "attack_parameters": {
+    "flooding_repeat": 100,
+    "suppress_ratio": 0.9,
+    "plateau_values": [
+      0.0,
+      1.0
+    ],
+    "playback_window": 200
+  },
+  "random_seed": 42
+}

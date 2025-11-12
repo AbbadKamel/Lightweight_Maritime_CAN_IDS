@@ -1,0 +1,73 @@
+# CNN Autoencoder Model Configuration
+
+architecture:
+  name: "CNN_Autoencoder"
+  type: "autoencoder"
+  
+  # Layer configuration (CANShield specification)
+  layers:
+    - type: "Conv2D"
+      filters: 32
+      kernel_size: [3, 3]
+      padding: "same"
+      activation: "leaky_relu"
+      leaky_alpha: 0.2
+    
+    - type: "Conv2D"
+      filters: 16
+      kernel_size: [3, 3]
+      padding: "same"
+      activation: "leaky_relu"
+      leaky_alpha: 0.2
+    
+    - type: "Conv2D"  # Bottleneck
+      filters: 16
+      kernel_size: [3, 3]
+      padding: "same"
+      activation: "leaky_relu"
+      leaky_alpha: 0.2
+    
+    - type: "Conv2D"
+      filters: 32
+      kernel_size: [3, 3]
+      padding: "same"
+      activation: "leaky_relu"
+      leaky_alpha: 0.2
+    
+    - type: "Conv2D"  # Output
+      filters: 1
+      kernel_size: [3, 3]
+      padding: "same"
+      activation: "sigmoid"
+
+training:
+  optimizer: "adam"
+  learning_rate: 0.0002
+  loss: "mse"
+  metrics: ["mae"]
+  
+  batch_size: 128
+  epochs: 100
+  validation_split: 0.2
+  
+  callbacks:
+    - type: "ModelCheckpoint"
+      monitor: "val_loss"
+      save_best_only: true
+    
+    - type: "EarlyStopping"
+      monitor: "val_loss"
+      patience: 10
+      restore_best_weights: true
+    
+    - type: "ReduceLROnPlateau"
+      monitor: "val_loss"
+      factor: 0.5
+      patience: 5
+      min_lr: 0.00001
+
+transfer_learning:
+  enabled: true
+  strategy: "sequential"  # Train T1, then transfer to T5, T10, etc.
+  freeze_layers: false
+  fine_tune_epochs: 50
