@@ -87,20 +87,12 @@ SIGNAL_NAMES = [
 NUM_SIGNALS = len(SIGNAL_NAMES)
 
 # ============================================================================
-# Step 1: Load Datasets
+# Step 1: Load Attack Dataset
 # ============================================================================
 
-print("[1/7] Loading datasets...")
+print("[1/7] Loading attack dataset...")
 
-# Load TRAINING data (for threshold calculation - like CANShield!)
-print("  Loading training data for threshold calculation...")
-train_file = DATA_DIR / 'preprocessed' / 'training_data.npz'
-train_data = np.load(train_file)
-training_timesteps = train_data['X']  # Normal data used for training
-print(f"  ✓ Training data: {len(training_timesteps):,} timesteps (NORMAL only)")
-
-# Load ATTACK data (for detection testing)
-print("  Loading attack dataset for detection...")
+# Load ATTACK data (contains both normal and attack samples)
 attack_file = ATTACKS_DIR / 'attack_dataset.npz'
 attack_data = np.load(attack_file, allow_pickle=True)
 
@@ -110,15 +102,23 @@ label_map_name_to_id = attack_data['label_map'].item()
 # Reverse the map: ID -> Name
 label_map = {v: k.capitalize() for k, v in label_map_name_to_id.items()}
 
+# IMPORTANT: Use ALL normal data for threshold calculation (not subset!)
+# This gives stable thresholds based on ~3.4M normal timesteps
+normal_mask_full = (labels_full == 0)
+training_timesteps = timesteps_full[normal_mask_full]
+print(f"✓ Normal data for thresholds: {len(training_timesteps):,} timesteps")
+print(f"  (Using ALL normal data from full dataset for stable thresholds)")
+print()
+
 # Use subset for testing or full dataset
 if TEST_SIZE > 0:
     timesteps = timesteps_full[:TEST_SIZE]
     labels = labels_full[:TEST_SIZE]
-    print(f"  ✓ Attack dataset SUBSET: {len(timesteps):,} timesteps (test mode)")
+    print(f"Attack dataset SUBSET for detection: {len(timesteps):,} timesteps")
 else:
     timesteps = timesteps_full
     labels = labels_full
-    print(f"  ✓ Attack dataset FULL: {len(timesteps):,} timesteps")
+    print(f"Attack dataset FULL for detection: {len(timesteps):,} timesteps")
 
 # Show distribution
 unique, counts = np.unique(labels, return_counts=True)
@@ -144,14 +144,12 @@ print()
 # ============================================================================
 
 print("[3/7] TIER 1: Calculating per-signal thresholds...")
-print(f"  Using TRAINING data (normal only) for threshold calculation")
+print(f"  Using ALL normal data ({len(training_timesteps):,} timesteps) for threshold calculation")
 print(f"  Processing in chunks of {CHUNK_SIZE:,} timesteps")
 print()
 
-# Collect errors for each signal from TRAINING data
+# Collect errors for each signal from ALL NORMAL data
 signal_errors_lists = [[] for _ in range(NUM_SIGNALS)]
-
-print(f"  Training data: {len(training_timesteps):,} timesteps (all normal)")
 
 # Process training data in chunks
 num_train = len(training_timesteps)
