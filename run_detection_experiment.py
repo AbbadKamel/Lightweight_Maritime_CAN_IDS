@@ -66,144 +66,135 @@ attack_file = ATTACKS_DIR / 'attack_dataset.npz'
 attack_data = np.load(attack_file)
 
 # Get data and labels
-data = attack_data['data']  # Shape: (N, 15, T)
-labels = attack_data['attack_labels']  # Shape: (N,)
+timesteps = attack_data['X_data']  # Shape: (N, 15) - timesteps × signals
+labels = attack_data['y_labels']  # Shape: (N,)
 
 if MAX_SAMPLES:
-    data = data[:MAX_SAMPLES]
+    timesteps = timesteps[:MAX_SAMPLES]
     labels = labels[:MAX_SAMPLES]
 
-num_samples = data.shape[0]
-num_signals = data.shape[1]
+num_timesteps, num_signals = timesteps.shape
 
-print(f"✓ Loaded {num_samples:,} samples × {num_signals} signals")
-print(f"  Normal: {np.sum(labels == 0):,}")
-print(f"  Attacks: {np.sum(labels > 0):,}")
+print(f"✓ Loaded {num_timesteps:,} timesteps × {num_signals} signals")
 print()
+
+# ============================================================================
+# Create Sliding Windows
+# ============================================================================
+
+print("[2/6] Creating sliding windows...")
+num_windows = num_timesteps - WINDOW_LENGTH + 1
+
+if num_windows <= 0:
+    print(f"❌ ERROR: Not enough timesteps ({num_timesteps}) to create windows of length {WINDOW_LENGTH}")
+    sys.exit(1)
+
+# Create sliding windows using stride tricks
+windows = np.lib.stride_tricks.sliding_window_view(
+    timesteps,
+    window_shape=(WINDOW_LENGTH,),
+    axis=0
+)
+
+# Reshape to [num_windows, window_length, num_signals]
+windows = windows.transpose(0, 2, 1).astype(np.float32)
+
+# Labels: use label at the END of each window
+window_labels = labels[WINDOW_LENGTH-1:]
+
+print(f"✓ Created {num_windows:,} windows of shape ({WINDOW_LENGTH}, {num_signals})")
+print(f"  Normal: {np.sum(window_labels == 0):,}")
+print(f"  Attacks: {np.sum(window_labels > 0):,}")
+print()
+
+num_samples = num_windows
 
 # ============================================================================
 # Load Autoencoders and Thresholds
 # ============================================================================
 
-print("[2/6] Loading trained autoencoders and thresholds...")
+print("[3/6] Loading trained autoencoders and thresholds...")
 autoencoders = {}
 thresholds = {}
 
 for T in TIME_SCALES:
     # Load model
     model_path = MODELS_DIR / f'autoencoder_T{T}_best.h5'
-    autoencoders[T] = tf.keras.models.load_model(model_path, compile=False)
+    autoencoders[f'T{T}'] = tf.keras.models.load_model(model_path, compile=False)
     
     # Load thresholds
     threshold_file = THRESHOLDS_DIR / f'thresholds_T{T}.json'
     with open(threshold_file) as f:
         threshold_data = json.load(f)
-        thresholds[T] = threshold_data['global'][THRESHOLD_PERCENTILE]
+        thresholds[f'T{T}'] = threshold_data['global'][THRESHOLD_PERCENTILE]
     
-    print(f"✓ T={T:2d}: {THRESHOLD_PERCENTILE} threshold = {thresholds[T]:.6f}")
+    print(f"✓ T={T:2d}: {THRESHOLD_PERCENTILE} threshold = {thresholds[f'T{T}']:.6f}")
 
 print()
 
 # ============================================================================
-# Create Windows for Each Time Scale
-# ============================================================================
-
-print("[3/6] Creating sliding windows for each time scale...")
-windows_dict = {}
-
-for T in TIME_SCALES:
-    num_windows = (data.shape[2] - WINDOW_LENGTH) // T + 1
-    windows = np.zeros((num_samples, num_windows, WINDOW_LENGTH, num_signals, 1))
-    
-    for i in range(num_windows):
-        start_idx = i * T
-        end_idx = start_idx + WINDOW_LENGTH
-        if end_idx <= data.shape[2]:
-            window_data = data[:, :, start_idx:end_idx]  # (N, 15, 50)
-            windows[:, i, :, :, 0] = window_data.transpose(0, 2, 1)  # (N, 50, 15)
-    
-    windows_dict[T] = windows
-    print(f"✓ T={T:2d}: {windows.shape}")
-
-print()
-
-# ============================================================================
-# Run Detection
+# Run Detection with Batch Processing
 # ============================================================================
 
 print("[4/6] Running detection with voting...")
 print(f"  Batch size: {BATCH_SIZE}")
+print(f"  Voting threshold: {VOTING_THRESHOLD}/{len(TIME_SCALES)} autoencoders")
 print()
 
-# Store MSE errors for each autoencoder
-all_mse_errors = {T: [] for T in TIME_SCALES}
+# Store votes for each window
+all_votes = np.zeros(num_windows, dtype=np.int32)
 
+# Process each autoencoder
 for T in TIME_SCALES:
     print(f"Computing MSE for T={T}...")
-    model = autoencoders[T]
-    windows = windows_dict[T]
+    model = autoencoders[f'T{T}']
+    threshold = float(thresholds[f'T{T}'])
     
-    # Process in batches
-    num_windows = windows.shape[1]
-    mse_per_window = []
-    
-    for w_idx in range(num_windows):
-        window_batch = windows[:, w_idx, :, :, :]  # (N, 50, 15, 1)
+    # Process windows in batches
+    num_detected = 0
+    for i in range(0, num_windows, BATCH_SIZE):
+        batch_end = min(i + BATCH_SIZE, num_windows)
+        batch_windows = windows[i:batch_end]
         
-        # Process in batches to avoid memory issues
-        batch_mse = []
-        for i in range(0, num_samples, BATCH_SIZE):
-            batch = window_batch[i:i+BATCH_SIZE]
-            reconstructed = model.predict(batch, verbose=0)
-            mse = np.mean((batch - reconstructed) ** 2, axis=(1, 2, 3))
-            batch_mse.append(mse)
+        # Add channel dimension: (N, 50, 15) -> (N, 50, 15, 1)
+        batch_input = batch_windows[..., np.newaxis]
         
-        mse_per_window.append(np.concatenate(batch_mse))
+        # Reconstruct
+        reconstructed = model.predict(batch_input, verbose=0)
+        
+        # Calculate MSE per window
+        mse = np.mean(np.square(batch_input - reconstructed), axis=(1, 2, 3))
+        
+        # Vote: anomaly if MSE > threshold
+        is_anomaly = (mse > threshold).astype(np.int32)
+        all_votes[i:batch_end] += is_anomaly
+        num_detected += np.sum(is_anomaly)
     
-    # Average MSE across all windows for each sample
-    all_mse_errors[T] = np.mean(mse_per_window, axis=0)
-    print(f"  ✓ MSE range: [{all_mse_errors[T].min():.6f}, {all_mse_errors[T].max():.6f}]")
-
-print()
-
-# ============================================================================
-# Voting-based Detection
-# ============================================================================
-
-print("[5/6] Applying voting-based detection...")
-print(f"  Voting threshold: {VOTING_THRESHOLD}/{len(TIME_SCALES)} autoencoders must detect anomaly")
-print()
-
-# Count votes for each sample
-votes = np.zeros(num_samples, dtype=int)
-
-for T in TIME_SCALES:
-    detected = all_mse_errors[T] > thresholds[T]
-    votes += detected.astype(int)
-    print(f"  T={T:2d}: {np.sum(detected):6,}/{num_samples:,} flagged ({np.sum(detected)/num_samples*100:5.2f}%)")
+    print(f"  ✓ T={T:2d}: {num_detected:6,}/{num_windows:,} flagged ({num_detected/num_windows*100:5.2f}%)")
 
 # Final prediction: attack if >= VOTING_THRESHOLD autoencoders detected
-predictions = (votes >= VOTING_THRESHOLD).astype(int)
-num_detected = np.sum(predictions)
+predictions = (all_votes >= VOTING_THRESHOLD).astype(np.int32)
+num_detected_final = np.sum(predictions)
 
 print()
-print(f"Final detections: {num_detected:,}/{num_samples:,} ({num_detected/num_samples*100:.2f}%)")
+print(f"Final detections: {num_detected_final:,}/{num_windows:,} ({num_detected_final/num_windows*100:.2f}%)")
 print()
 
 # ============================================================================
 # Calculate Metrics
 # ============================================================================
 
-print("[6/6] Calculating performance metrics...")
+print("[5/6] Calculating performance metrics...")
 
 # Confusion matrix
-true_labels = (labels > 0).astype(int)  # 0=normal, 1=attack
+true_labels = (window_labels > 0).astype(int)  # 0=normal, 1=attack
 tn = np.sum((true_labels == 0) & (predictions == 0))
 fp = np.sum((true_labels == 0) & (predictions == 1))
 fn = np.sum((true_labels == 1) & (predictions == 0))
 tp = np.sum((true_labels == 1) & (predictions == 1))
 
 # Metrics
+num_samples = num_windows  # Update for window-based detection
 accuracy = (tp + tn) / num_samples if num_samples > 0 else 0
 precision = tp / (tp + fp) if (tp + fp) > 0 else 0
 recall = tp / (tp + fn) if (tp + fn) > 0 else 0
@@ -220,7 +211,7 @@ attack_names = ['Normal', 'Flooding', 'Suppress', 'Plateau', 'Continuous', 'Play
 per_attack_stats = {}
 
 for attack_id, attack_name in enumerate(attack_names):
-    mask = (labels == attack_id)
+    mask = (window_labels == attack_id)
     total = np.sum(mask)
     detected = np.sum(predictions[mask] == 1)
     rate = detected / total if total > 0 else 0
@@ -239,16 +230,15 @@ print()
 # Save Results
 # ============================================================================
 
-print("Saving results...")
+print("[6/6] Saving results...")
 
 # Save predictions
 output_file = DETECTION_DIR / f'predictions_{OUTPUT_SUFFIX}.npz'
 np.savez_compressed(
     output_file,
     predictions=predictions,
-    labels=labels,
-    votes=votes,
-    mse_errors={f'T{T}': all_mse_errors[T] for T in TIME_SCALES}
+    labels=window_labels,
+    votes=all_votes
 )
 print(f"✓ Predictions saved: {output_file}")
 
