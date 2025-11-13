@@ -112,7 +112,7 @@ else:
 unique, counts = np.unique(labels, return_counts=True)
 print(f"\nData distribution:")
 for label_id, count in zip(unique, counts):
-    label_name = label_map[label_id]
+    label_name = label_map[int(label_id)]  # Convert numpy int to Python int
     pct = (count / len(labels)) * 100
     print(f"  {label_name:15s}: {count:10,} ({pct:5.2f}%)")
 print()
