@@ -87,10 +87,20 @@ SIGNAL_NAMES = [
 NUM_SIGNALS = len(SIGNAL_NAMES)
 
 # ============================================================================
-# Step 1: Load Attack Dataset
+# Step 1: Load Datasets
 # ============================================================================
 
-print("[1/7] Loading attack dataset...")
+print("[1/7] Loading datasets...")
+
+# Load TRAINING data (for threshold calculation - like CANShield!)
+print("  Loading training data for threshold calculation...")
+train_file = DATA_DIR / 'preprocessed' / 'training_data.npz'
+train_data = np.load(train_file)
+training_timesteps = train_data['X']  # Normal data used for training
+print(f"  ✓ Training data: {len(training_timesteps):,} timesteps (NORMAL only)")
+
+# Load ATTACK data (for detection testing)
+print("  Loading attack dataset for detection...")
 attack_file = ATTACKS_DIR / 'attack_dataset.npz'
 attack_data = np.load(attack_file, allow_pickle=True)
 
@@ -104,11 +114,11 @@ label_map = {v: k.capitalize() for k, v in label_map_name_to_id.items()}
 if TEST_SIZE > 0:
     timesteps = timesteps_full[:TEST_SIZE]
     labels = labels_full[:TEST_SIZE]
-    print(f"✓ Using SUBSET: {len(timesteps):,} timesteps (test mode)")
+    print(f"  ✓ Attack dataset SUBSET: {len(timesteps):,} timesteps (test mode)")
 else:
     timesteps = timesteps_full
     labels = labels_full
-    print(f"✓ Using FULL dataset: {len(timesteps):,} timesteps")
+    print(f"  ✓ Attack dataset FULL: {len(timesteps):,} timesteps")
 
 # Show distribution
 unique, counts = np.unique(labels, return_counts=True)
@@ -134,22 +144,20 @@ print()
 # ============================================================================
 
 print("[3/7] TIER 1: Calculating per-signal thresholds...")
-print(f"  Using NORMAL data only (label=0) for threshold calculation")
+print(f"  Using TRAINING data (normal only) for threshold calculation")
 print(f"  Processing in chunks of {CHUNK_SIZE:,} timesteps")
 print()
 
-# Collect errors for each signal from NORMAL data only
+# Collect errors for each signal from TRAINING data
 signal_errors_lists = [[] for _ in range(NUM_SIGNALS)]
 
-normal_mask = (labels == 0)
-normal_timesteps = timesteps[normal_mask]
-print(f"  Normal data: {len(normal_timesteps):,} timesteps")
+print(f"  Training data: {len(training_timesteps):,} timesteps (all normal)")
 
-# Process normal data in chunks
-num_normal = len(normal_timesteps)
-for chunk_start in range(0, num_normal - WINDOW_LENGTH, CHUNK_SIZE):
-    chunk_end = min(chunk_start + CHUNK_SIZE + WINDOW_LENGTH, num_normal)
-    chunk = normal_timesteps[chunk_start:chunk_end]
+# Process training data in chunks
+num_train = len(training_timesteps)
+for chunk_start in range(0, num_train - WINDOW_LENGTH, CHUNK_SIZE):
+    chunk_end = min(chunk_start + CHUNK_SIZE + WINDOW_LENGTH, num_train)
+    chunk = training_timesteps[chunk_start:chunk_end]
     
     # Create sliding windows
     num_windows = len(chunk) - WINDOW_LENGTH + 1
@@ -176,7 +184,7 @@ for chunk_start in range(0, num_normal - WINDOW_LENGTH, CHUNK_SIZE):
         for sig_idx in range(NUM_SIGNALS):
             signal_errors_lists[sig_idx].append(abs_error[:, :, sig_idx].flatten())
     
-    print(f"  Processed {chunk_end:,}/{num_normal:,} normal timesteps...")
+    print(f"  Processed {chunk_end:,}/{num_train:,} training timesteps...")
 
 # Calculate thresholds
 signal_thresholds = np.zeros(NUM_SIGNALS)
@@ -200,10 +208,10 @@ print()
 # Collect temporal anomaly fractions for each signal
 temporal_fractions_lists = [[] for _ in range(NUM_SIGNALS)]
 
-# Process normal data again in chunks
-for chunk_start in range(0, num_normal - WINDOW_LENGTH, CHUNK_SIZE):
-    chunk_end = min(chunk_start + CHUNK_SIZE + WINDOW_LENGTH, num_normal)
-    chunk = normal_timesteps[chunk_start:chunk_end]
+# Process training data again in chunks
+for chunk_start in range(0, num_train - WINDOW_LENGTH, CHUNK_SIZE):
+    chunk_end = min(chunk_start + CHUNK_SIZE + WINDOW_LENGTH, num_train)
+    chunk = training_timesteps[chunk_start:chunk_end]
     
     num_windows = len(chunk) - WINDOW_LENGTH + 1
     if num_windows <= 0:
@@ -232,7 +240,7 @@ for chunk_start in range(0, num_normal - WINDOW_LENGTH, CHUNK_SIZE):
         for sig_idx in range(NUM_SIGNALS):
             temporal_fractions_lists[sig_idx].append(temporal_fraction[:, sig_idx])
     
-    print(f"  Processed {chunk_end:,}/{num_normal:,} normal timesteps...")
+    print(f"  Processed {chunk_end:,}/{num_train:,} training timesteps...")
 
 # Calculate temporal thresholds
 temporal_thresholds = np.zeros(NUM_SIGNALS)
@@ -256,10 +264,10 @@ print()
 # Collect signal fractions for all normal windows
 signal_fractions_list = []
 
-# Process normal data one more time
-for chunk_start in range(0, num_normal - WINDOW_LENGTH, CHUNK_SIZE):
-    chunk_end = min(chunk_start + CHUNK_SIZE + WINDOW_LENGTH, num_normal)
-    chunk = normal_timesteps[chunk_start:chunk_end]
+# Process training data one more time
+for chunk_start in range(0, num_train - WINDOW_LENGTH, CHUNK_SIZE):
+    chunk_end = min(chunk_start + CHUNK_SIZE + WINDOW_LENGTH, num_train)
+    chunk = training_timesteps[chunk_start:chunk_end]
     
     num_windows = len(chunk) - WINDOW_LENGTH + 1
     if num_windows <= 0:
@@ -291,7 +299,7 @@ for chunk_start in range(0, num_normal - WINDOW_LENGTH, CHUNK_SIZE):
         
         signal_fractions_list.append(signal_fraction)
     
-    print(f"  Processed {chunk_end:,}/{num_normal:,} normal timesteps...")
+    print(f"  Processed {chunk_end:,}/{num_train:,} training timesteps...")
 
 # Calculate final threshold
 all_signal_fractions = np.concatenate(signal_fractions_list)
