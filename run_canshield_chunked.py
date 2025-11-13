@@ -96,7 +96,9 @@ attack_data = np.load(attack_file, allow_pickle=True)
 
 timesteps_full = attack_data['X_data']  # (4.9M, 15)
 labels_full = attack_data['y_labels']   # (4.9M,)
-label_map = attack_data['label_map'].item()
+label_map_name_to_id = attack_data['label_map'].item()
+# Reverse the map: ID -> Name
+label_map = {v: k.capitalize() for k, v in label_map_name_to_id.items()}
 
 # Use subset for testing or full dataset
 if TEST_SIZE > 0:
