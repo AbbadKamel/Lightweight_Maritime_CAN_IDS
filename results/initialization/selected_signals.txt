@@ -1,0 +1,20 @@
+# SELECTED SIGNALS FOR CANSHIELD PIPELINE
+# Total signals: m = 15
+# Generated from Step 2 of Initialization Phase
+# Criteria: Coverage >= 95%, Not constant (std > 0)
+
+wind_speed
+wind_angle
+yaw
+pitch
+roll
+heading
+variation
+rate_of_turn
+cog
+sog
+rudder_angle_order
+rudder_position
+latitude
+longitude
+depth

@@ -1,0 +1,25 @@
+# FINAL SIGNAL ORDER - CANSHIELD PIPELINE
+# This order is FIXED and must be used for all phases
+# Generated from hierarchical clustering (complete linkage)
+# Distance metric: 1 - |correlation|
+# Total signals: m = 15
+#
+# DO NOT MODIFY THIS FILE!
+# Changing signal order will invalidate trained models
+#
+
+pitch
+depth
+wind_speed
+yaw
+wind_angle
+heading
+cog
+variation
+sog
+longitude
+rudder_angle_order
+latitude
+roll
+rate_of_turn
+rudder_position

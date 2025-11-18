@@ -1,0 +1,98 @@
+{
+  "experiment": "test_100k_99_99_99",
+  "method": "canshield_chunked",
+  "timestamp": "2025-11-14T11:08:15.927300",
+  "configuration": {
+    "test_size": 100000,
+    "loss_factor": 99.0,
+    "time_factor": 99.0,
+    "signal_factor": 99.0,
+    "chunk_size": 50000,
+    "window_length": 50
+  },
+  "thresholds": {
+    "signal_level": {
+      "pitch": 0.40141868591308594,
+      "depth": 0.8113503456115723,
+      "wind_speed": 0.5604411959648132,
+      "yaw": 0.6465424299240112,
+      "wind_angle": 0.7621849775314331,
+      "heading": 0.5585161447525024,
+      "cog": 0.5740607976913452,
+      "variation": 0.9731464385986328,
+      "sog": 0.6497957110404968,
+      "longitude": 0.7994694709777832,
+      "rudder_angle_order": 0.9950789213180542,
+      "latitude": 0.9653064608573914,
+      "roll": 0.5892500877380371,
+      "rate_of_turn": 0.5374494194984436,
+      "rudder_position": 0.45781171321868896
+    },
+    "temporal_level": {
+      "pitch": 0.06,
+      "depth": 0.08,
+      "wind_speed": 0.08,
+      "yaw": 0.06,
+      "wind_angle": 0.1,
+      "heading": 0.06,
+      "cog": 0.06,
+      "variation": 0.14,
+      "sog": 0.08,
+      "longitude": 0.06,
+      "rudder_angle_order": 0.06,
+      "latitude": 0.06,
+      "roll": 0.06,
+      "rate_of_turn": 0.06,
+      "rudder_position": 0.06
+    },
+    "final_level": 0.06666666666666667
+  },
+  "metrics": {
+    "accuracy": 0.318232751720826,
+    "precision": 0.3019567242985816,
+    "recall": 0.9759084521180486,
+    "f1_score": 0.4612100319428191
+  },
+  "confusion_matrix": [
+    [
+      2642,
+      67424
+    ],
+    [
+      720,
+      29166
+    ]
+  ],
+  "per_attack_stats": {
+    "Normal": {
+      "total": 70066,
+      "detected": 67424,
+      "rate": 0.9622926954585677
+    },
+    "Flooding": {
+      "total": 5919,
+      "detected": 5720,
+      "rate": 0.9663794559891874
+    },
+    "Suppress": {
+      "total": 5891,
+      "detected": 5800,
+      "rate": 0.9845527075199457
+    },
+    "Plateau": {
+      "total": 6019,
+      "detected": 5944,
+      "rate": 0.987539458381791
+    },
+    "Continuous": {
+      "total": 5948,
+      "detected": 5843,
+      "rate": 0.9823470073974445
+    },
+    "Playback": {
+      "total": 6109,
+      "detected": 5859,
+      "rate": 0.9590767719757735
+    }
+  }
+}

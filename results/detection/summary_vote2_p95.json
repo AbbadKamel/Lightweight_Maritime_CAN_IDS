@@ -1,0 +1,64 @@
+{
+  "experiment": "vote2_p95",
+  "timestamp": "2025-11-13T14:35:31.815473",
+  "configuration": {
+    "voting_threshold": 2,
+    "threshold_percentile": "p95",
+    "time_scales": [
+      1,
+      5,
+      10,
+      20,
+      50
+    ],
+    "num_samples": 4944443
+  },
+  "metrics": {
+    "accuracy": 0.2999781775217148,
+    "precision": 0.2999781775217148,
+    "recall": 1.0,
+    "f1_score": 0.46151263568684636
+  },
+  "confusion_matrix": [
+    [
+      0,
+      3461218
+    ],
+    [
+      0,
+      1483225
+    ]
+  ],
+  "per_attack_stats": {
+    "Normal": {
+      "total": 3461218,
+      "detected": 3461218,
+      "rate": 1.0
+    },
+    "Flooding": {
+      "total": 296676,
+      "detected": 296676,
+      "rate": 1.0
+    },
+    "Suppress": {
+      "total": 296677,
+      "detected": 296677,
+      "rate": 1.0
+    },
+    "Plateau": {
+      "total": 296676,
+      "detected": 296676,
+      "rate": 1.0
+    },
+    "Continuous": {
+      "total": 296677,
+      "detected": 296677,
+      "rate": 1.0
+    },
+    "Playback": {
+      "total": 296519,
+      "detected": 296519,
+      "rate": 1.0
+    }
+  }
+}

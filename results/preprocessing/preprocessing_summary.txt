@@ -1,0 +1,53 @@
+================================================================================
+PHASE 1 PREPROCESSING - SUMMARY REPORT
+================================================================================
+
+INPUT DATA:
+  Source:         decoded_brute_frames.csv
+  Total messages: 98,942
+  Signals:        15
+  Time range:      14:17:00.267.0 →  15:13:42.158.0
+
+PREPROCESSING CONFIGURATION:
+  Window size:      50
+  Sampling periods: [1, 5, 10, 20, 50]
+  Number of signals: 15
+  Forward-fill:     Enabled
+  Backward-fill:    Enabled (training mode)
+
+OUTPUT WINDOWS:
+  T= 1:  98893 windows × 15 signals × 50 timesteps
+  T= 5:  19740 windows × 15 signals × 50 timesteps
+  T=10:   9846 windows × 15 signals × 50 timesteps
+  T=20:   4899 windows × 15 signals × 50 timesteps
+  T=50:   1930 windows × 15 signals × 50 timesteps
+
+NORMALIZATION RANGES (from REAL data):
+  pitch               : [    0.5672,     3.0825]
+  depth               : [    1.7600,     8.2800]
+  wind_speed          : [    0.0000,     6.4300]
+  yaw                 : [ -179.7483,   179.7942]
+  wind_angle          : [    0.0000,   358.9982]
+  heading             : [    0.0286,   359.9779]
+  cog                 : [    0.0057,   359.8118]
+  variation           : [    1.0485,     1.0542]
+  sog                 : [    0.0000,     2.5700]
+  longitude           : [   -0.3436,    -0.3196]
+  rudder_angle_order  : [   -7.9985,     0.0000]
+  latitude            : [   49.1834,    49.1943]
+  roll                : [   -2.1028,     1.4840]
+  rate_of_turn        : [  -10.4558,     7.3617]
+  rudder_position     : [  -34.2571,    22.9069]
+
+SAVED FILES:
+  Windows:     /data/chercheurs/abbad241/Lightweight_Maritime_CAN_IDS/results/preprocessing/windows (5 files)
+  Parameters:  /data/chercheurs/abbad241/Lightweight_Maritime_CAN_IDS/results/preprocessing/parameters (5 files)
+  Plots:       /data/chercheurs/abbad241/Lightweight_Maritime_CAN_IDS/results/preprocessing/visualizations (12+ files)
+
+NEXT PHASE:
+  PHASE 2: CNN Autoencoder Training
+    - Train AE_1, AE_5, AE_10, AE_20, AE_50
+    - Compute three-tier thresholds
+    - Save trained models
+
+================================================================================

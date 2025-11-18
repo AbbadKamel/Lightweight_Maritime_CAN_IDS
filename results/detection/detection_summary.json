@@ -1,0 +1,54 @@
+{
+  "timestamp": "2025-11-12T19:09:35.220614",
+  "num_windows": 50000,
+  "num_signals": 15,
+  "voting_threshold": 3,
+  "metrics": {
+    "accuracy": 0.6448,
+    "precision": 0.34906994452300666,
+    "recall": 0.21414748081414747,
+    "f1_score": 0.26544792786831
+  },
+  "confusion_matrix": [
+    [
+      29031,
+      5984
+    ],
+    [
+      11776,
+      3209
+    ]
+  ],
+  "per_attack_stats": {
+    "Normal": {
+      "total": 35015,
+      "detected": 5984,
+      "rate": 0.17089818649150365
+    },
+    "Flooding": {
+      "total": 2944,
+      "detected": 513,
+      "rate": 0.17425271739130435
+    },
+    "Suppress": {
+      "total": 3004,
+      "detected": 650,
+      "rate": 0.21637816245006658
+    },
+    "Plateau": {
+      "total": 2964,
+      "detected": 684,
+      "rate": 0.23076923076923078
+    },
+    "Continuous": {
+      "total": 3010,
+      "detected": 831,
+      "rate": 0.2760797342192691
+    },
+    "Playback": {
+      "total": 3063,
+      "detected": 531,
+      "rate": 0.1733594515181195
+    }
+  }
+}

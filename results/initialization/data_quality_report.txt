@@ -1,0 +1,179 @@
+================================================================================
+DATA QUALITY REPORT - INITIALIZATION PHASE
+================================================================================
+
+Dataset: decoded_brute_frames.csv
+Total rows: 98942
+Total signals analyzed: 16
+
+================================================================================
+DETAILED SIGNAL ANALYSIS
+================================================================================
+
+Signal: wind_speed
+  Coverage: 100.00%
+  Non-null: 98942
+  Mean: 2.835540
+  Std: 1.595840
+  Min: 0.000000
+  Max: 6.430000
+  Constant: False
+
+Signal: wind_angle
+  Coverage: 100.00%
+  Non-null: 98942
+  Mean: 151.380321
+  Std: 138.633229
+  Min: 0.000000
+  Max: 358.998166
+  Constant: False
+
+Signal: yaw
+  Coverage: 100.00%
+  Non-null: 98941
+  Mean: 42.698659
+  Std: 73.705976
+  Min: -179.748319
+  Max: 179.794156
+  Constant: False
+
+Signal: pitch
+  Coverage: 100.00%
+  Non-null: 98941
+  Mean: 1.414582
+  Std: 0.345641
+  Min: 0.567228
+  Max: 3.082513
+  Constant: False
+
+Signal: roll
+  Coverage: 100.00%
+  Non-null: 98941
+  Mean: -0.132878
+  Std: 0.689490
+  Min: -2.102755
+  Max: 1.483961
+  Constant: False
+
+Signal: heading
+  Coverage: 100.00%
+  Non-null: 98940
+  Mean: 105.737044
+  Std: 84.233682
+  Min: 0.028648
+  Max: 359.977924
+  Constant: False
+
+Signal: deviation
+  Coverage: 0.00%
+  Non-null: 0
+  Mean: nan
+  Std: nan
+  Min: nan
+  Max: nan
+  Constant: True
+
+Signal: variation
+  Coverage: 100.00%
+  Non-null: 98940
+  Mean: 1.051492
+  Std: 0.002863
+  Min: 1.048513
+  Max: 1.054242
+  Constant: False
+
+Signal: rate_of_turn
+  Coverage: 100.00%
+  Non-null: 98939
+  Mean: 0.196085
+  Std: 2.303708
+  Min: -10.455833
+  Max: 7.361663
+  Constant: False
+
+Signal: cog
+  Coverage: 100.00%
+  Non-null: 98938
+  Mean: 132.860017
+  Std: 88.033255
+  Min: 0.005730
+  Max: 359.811766
+  Constant: False
+
+Signal: sog
+  Coverage: 100.00%
+  Non-null: 98938
+  Mean: 1.287766
+  Std: 0.765782
+  Min: 0.000000
+  Max: 2.570000
+  Constant: False
+
+Signal: rudder_angle_order
+  Coverage: 99.99%
+  Non-null: 98934
+  Mean: -6.716262
+  Std: 2.934599
+  Min: -7.998491
+  Max: 0.000000
+  Constant: False
+
+Signal: rudder_position
+  Coverage: 99.99%
+  Non-null: 98937
+  Mean: -0.829663
+  Std: 7.677683
+  Min: -34.257147
+  Max: 22.906853
+  Constant: False
+
+Signal: latitude
+  Coverage: 99.99%
+  Non-null: 98936
+  Mean: 49.185653
+  Std: 0.003761
+  Min: 49.183434
+  Max: 49.194263
+  Constant: False
+
+Signal: longitude
+  Coverage: 99.99%
+  Non-null: 98936
+  Mean: -0.335998
+  Std: 0.007448
+  Min: -0.343593
+  Max: -0.319646
+  Constant: False
+
+Signal: depth
+  Coverage: 99.99%
+  Non-null: 98935
+  Mean: 5.171691
+  Std: 1.954258
+  Min: 1.760000
+  Max: 8.280000
+  Constant: False
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+Recommended to KEEP (15 signals):
+  - wind_speed
+  - wind_angle
+  - yaw
+  - pitch
+  - roll
+  - heading
+  - variation
+  - rate_of_turn
+  - cog
+  - sog
+  - rudder_angle_order
+  - rudder_position
+  - latitude
+  - longitude
+  - depth
+
+Recommended to REMOVE (1 signals):
+  - deviation
